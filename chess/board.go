@@ -1,5 +1,9 @@
 package chess
 
+import (
+	"fmt"
+)
+
 type Bitboard uint64
 
 const (
@@ -109,4 +113,84 @@ func NewBoard()*Board {
 	b := &Board{}
 
 	return b
+}
+
+// setBit turns the bit 'on' at the given square index (0-63).
+func setBit(bb uint64, square uint) uint64 {
+	return bb | (1 << square)
+}
+
+// clearBit turns the bit 'off' at the given square index.
+func clearBit(bb uint64, square uint) uint64 {
+	return bb &^ (1 << square) 
+}
+
+// getBit checks if the bit is 'on' at the given square index.
+func getBit(bb uint64, square uint) bool {
+	return (bb & (1 << square)) != 0
+}
+
+// Helper methods on your Board struct to manage pieces:
+func (b *Board) AddPiece(piece int, square uint) {
+	b.PieceBB[piece] = setBit(b.PieceBB[piece], square)
+	// TODO: Update OccupancyBB as well
+}
+
+func (b *Board) RemovePiece(piece int, square uint) {
+	b.PieceBB[piece] = clearBit(b.PieceBB[piece], square)
+	// TODO: Update OccupancyBB as well
+}
+
+func (b *Board) GetPieceOnSquare(square uint) int {
+	for p := WhitePawn; p <= BlackKing; p++ {
+		if getBit(b.PieceBB[p], square) {
+			return p
+		}
+	}
+	return NoPiece
+}
+
+// PrintBoard displays the board state to the console.
+func (b *Board) PrintBoard() {
+	fmt.Println("\n  +-----------------+")
+	for rank := 7; rank >= 0; rank-- {
+		fmt.Printf("%d | ", rank+1)
+		for file := 0; file < 8; file++ {
+			square := uint(rank*8 + file)
+			piece := b.GetPieceOnSquare(square)
+			
+			pieceChar := '.' // Default empty square
+			switch piece {
+			case WhitePawn:
+				pieceChar = 'P'
+			case WhiteKnight:
+				pieceChar = 'N'
+			case WhiteBishop:
+				pieceChar = 'B'
+			case WhiteRook:
+				pieceChar = 'R'
+			case WhiteQueen:
+				pieceChar = 'Q'
+			case WhiteKing:
+				pieceChar = 'K'
+			case BlackPawn:
+				pieceChar = 'p'
+			case BlackKnight:
+				pieceChar = 'n'
+			case BlackBishop:
+				pieceChar = 'b'
+			case BlackRook:
+				pieceChar = 'r'
+			case BlackQueen:
+				pieceChar = 'q'
+			case BlackKing:
+				pieceChar = 'k'
+			}
+			fmt.Printf("%c ", pieceChar)
+		}
+		fmt.Println("|")
+	}
+	fmt.Println("  +-----------------+")
+	fmt.Println("    a b c d e f g h")
+	// TODO: Print SideToMove, Castling rights, EnPassant square
 }
