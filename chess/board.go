@@ -2,6 +2,7 @@ package chess
 
 import (
 	"fmt"
+	"math/bits"
 )
 
 type Bitboard uint64
@@ -111,6 +112,36 @@ type Board struct {
 
 func NewBoard()*Board {
 	b := &Board{}
+	b.SideToMove = 0 // 0 for white, 1 for black
+	b.Castling = 0b1111 // Example: WK | WQ | BK | BQ
+	b.EnPassantSq = NoSquare
+	b.HalfMoveClock = 0
+	b.FullMoveNum = 1
+
+	// Setup white pieces
+	b.PieceBB[WhitePawn] = 0b0000000000000000000000000000000000000000000000001111111100000000
+	b.PieceBB[WhiteKnight] = 0b0000000000000000000000000000000000000000000000000000000001000010
+	b.PieceBB[WhiteBishop] = 0b0000000000000000000000000000000000000000000000000000000000100100
+	b.PieceBB[WhiteRook] = 0b0000000000000000000000000000000000000000000000000000000010000001
+	b.PieceBB[WhiteQueen] = 0b0000000000000000000000000000000000000000000000000000000000001000
+	b.PieceBB[WhiteKing] = 0b0000000000000000000000000000000000000000000000000000000000010000
+
+	// Setup black pieces
+	b.PieceBB[BlackPawn] = 0b0000000011111111000000000000000000000000000000000000000000000000
+	b.PieceBB[BlackKnight] = 0b0100001000000000000000000000000000000000000000000000000000000000
+	b.PieceBB[BlackBishop] = 0b0010010000000000000000000000000000000000000000000000000000000000
+	b.PieceBB[BlackRook] = 0b1000000100000000000000000000000000000000000000000000000000000000
+	b.PieceBB[BlackQueen] = 0b0000100000000000000000000000000000000000000000000000000000000000
+	b.PieceBB[BlackKing] = 0b0001000000000000000000000000000000000000000000000000000000000000
+
+		// Calculate initial occupancy
+    for p := WhitePawn; p <= WhiteKing; p++ {
+        b.OccupancyBB[0] |= b.PieceBB[p] // White occupancy
+    }
+    for p := BlackPawn; p <= BlackKing; p++ {
+        b.OccupancyBB[1] |= b.PieceBB[p] // Black occupancy
+    }
+    b.OccupancyBB[2] = b.OccupancyBB[0] | b.OccupancyBB[1] // All pieces occupancy
 
 	return b
 }
@@ -130,15 +161,30 @@ func getBit(bb uint64, square uint) bool {
 	return (bb & (1 << square)) != 0
 }
 
+// popBit finds the index of the least significant bit, clears it from the bitboard pointer,
+// and returns the index. Returns NoSquare (64) if bitboard is empty.
+func popBit(bb *uint64) uint {
+	if *bb == 0 {
+		return NoSquare
+	}
+	index := uint(bits.TrailingZeros64(*bb))
+	*bb &^= (1 << index) // Clear the LSB using AND NOT
+	return index
+}
+
 // Helper methods on your Board struct to manage pieces:
 func (b *Board) AddPiece(piece int, square uint) {
 	b.PieceBB[piece] = setBit(b.PieceBB[piece], square)
-	// TODO: Update OccupancyBB as well
+	color := piece / 6 // 0 for white, 1 for black
+	b.OccupancyBB[color] = setBit(b.OccupancyBB[color], square)
+	b.OccupancyBB[2] = setBit(b.OccupancyBB[2], square)
 }
 
 func (b *Board) RemovePiece(piece int, square uint) {
 	b.PieceBB[piece] = clearBit(b.PieceBB[piece], square)
-	// TODO: Update OccupancyBB as well
+	color := piece / 6 // 0 for white, 1 for black
+	b.OccupancyBB[color] = clearBit(b.OccupancyBB[color], square)
+	b.OccupancyBB[2] = clearBit(b.OccupancyBB[2], square)
 }
 
 func (b *Board) GetPieceOnSquare(square uint) int {
@@ -194,3 +240,4 @@ func (b *Board) PrintBoard() {
 	fmt.Println("    a b c d e f g h")
 	// TODO: Print SideToMove, Castling rights, EnPassant square
 }
+

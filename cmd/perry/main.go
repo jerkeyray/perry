@@ -1,9 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"github.com/jerkeyray/perry/chess"
 )
 
 func main() {
-	fmt.Println("Hello World!")
+	board := chess.NewBoard()
+
+	board.PrintBoard()
+
 }
